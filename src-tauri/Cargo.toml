@@ -1,0 +1,25 @@
+[package]
+name = "encodingman"
+version = "1.0.0"
+description = "CSV encoding auto-fix tool"
+authors = ["arata"]
+edition = "2021"
+
+[lib]
+name = "encodingman_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chardetng = "0.1"
+encoding_rs = "0.8"
+tempfile = "3"
+dirs = "6"
+open = "5"
