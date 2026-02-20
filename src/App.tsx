@@ -129,17 +129,17 @@ export default function App() {
         EncodingMan
       </div>
       <div className="text-sm text-slate-400 text-center">
-        CSV文字化け自動修正ツール
+        テキストファイル文字化け自動修正ツール
       </div>
 
       {/* Drop Zone */}
       <div className="w-full max-w-sm border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-sky-400 transition-colors cursor-pointer">
         <div className="text-3xl mb-3 text-slate-500">&#128196;</div>
         <div className="text-sm text-slate-400">
-          CSVファイルをここにドロップ
+          ファイルをここにドロップ
         </div>
         <div className="text-xs text-slate-500 mt-1">
-          またはCSVファイルの関連付けで自動起動
+          CSV / TSV / TXT / XML / JSON / HTML など対応
         </div>
       </div>
 

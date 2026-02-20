@@ -1,7 +1,7 @@
 {
   "productName": "EncodingMan",
-  "version": "1.0.0",
-  "identifier": "com.encodingman.app",
+  "version": "1.1.0",
+  "identifier": "com.encodingman.csvtool",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "EncodingMan - CSV文字化け修正ツール",
+        "title": "EncodingMan - 文字化け修正ツール",
         "width": 640,
         "height": 480,
         "resizable": true,
@@ -42,6 +42,54 @@
         "ext": ["csv"],
         "mimeType": "text/csv",
         "name": "CSV File",
+        "role": "Editor"
+      },
+      {
+        "ext": ["tsv"],
+        "mimeType": "text/tab-separated-values",
+        "name": "TSV File",
+        "role": "Editor"
+      },
+      {
+        "ext": ["txt"],
+        "mimeType": "text/plain",
+        "name": "Text File",
+        "role": "Editor"
+      },
+      {
+        "ext": ["dat"],
+        "mimeType": "application/octet-stream",
+        "name": "Data File",
+        "role": "Editor"
+      },
+      {
+        "ext": ["log"],
+        "mimeType": "text/plain",
+        "name": "Log File",
+        "role": "Editor"
+      },
+      {
+        "ext": ["xsl", "xslt"],
+        "mimeType": "application/xml",
+        "name": "XSL File",
+        "role": "Editor"
+      },
+      {
+        "ext": ["xml"],
+        "mimeType": "application/xml",
+        "name": "XML File",
+        "role": "Editor"
+      },
+      {
+        "ext": ["json"],
+        "mimeType": "application/json",
+        "name": "JSON File",
+        "role": "Editor"
+      },
+      {
+        "ext": ["htm", "html"],
+        "mimeType": "text/html",
+        "name": "HTML File",
         "role": "Editor"
       }
     ]

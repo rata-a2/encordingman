@@ -22,18 +22,22 @@ pub fn launch_app(app_path: &str, file_path: &str) -> Result<(), String> {
 }
 
 /// Create a temporary file with the given data and return its path.
-/// The file is named to preserve the original .csv extension.
+/// The file preserves the original extension (csv, tsv, txt, etc.).
 pub fn create_temp_file(original_name: &str, data: &[u8]) -> Result<String, String> {
     let temp_dir = std::env::temp_dir().join("encodingman");
     std::fs::create_dir_all(&temp_dir)
         .map_err(|e| format!("Failed to create temp directory: {}", e))?;
 
-    // Use original filename with a prefix to avoid collisions
-    let stem = Path::new(original_name)
+    let orig_path = Path::new(original_name);
+    let stem = orig_path
         .file_stem()
         .and_then(|s| s.to_str())
         .unwrap_or("converted");
-    let temp_path = temp_dir.join(format!("{}_utf8.csv", stem));
+    let ext = orig_path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("csv");
+    let temp_path = temp_dir.join(format!("{}_utf8.{}", stem, ext));
 
     std::fs::write(&temp_path, data)
         .map_err(|e| format!("Failed to write temp file: {}", e))?;
