@@ -4,14 +4,49 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
+use crate::scorer;
+
 #[derive(Debug, Clone)]
 pub struct DetectionResult {
     pub encoding_name: String,
     pub confidence: f32,
 }
 
-/// Detect the encoding of a file's contents.
-/// Returns the detected encoding name and a confidence score (0.0 - 1.0).
+/// Smart encoding detection: tries all candidate encodings and picks the best one.
+/// Uses BOM detection first, then falls back to multi-encoding scoring.
+pub fn smart_detect_encoding(data: &[u8]) -> DetectionResult {
+    // Check for BOM markers first (100% confidence)
+    if data.len() >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF {
+        return DetectionResult {
+            encoding_name: "UTF-8".to_string(),
+            confidence: 1.0,
+        };
+    }
+    if data.len() >= 2 {
+        if data[0] == 0xFF && data[1] == 0xFE {
+            return DetectionResult {
+                encoding_name: "UTF-16LE".to_string(),
+                confidence: 1.0,
+            };
+        }
+        if data[0] == 0xFE && data[1] == 0xFF {
+            return DetectionResult {
+                encoding_name: "UTF-16BE".to_string(),
+                confidence: 1.0,
+            };
+        }
+    }
+
+    // Use scorer to try all encodings and pick the best
+    let best = scorer::best_encoding(data);
+
+    DetectionResult {
+        encoding_name: best.encoding_name,
+        confidence: best.score as f32,
+    }
+}
+
+/// Legacy encoding detection using chardetng (kept for backward compatibility).
 pub fn detect_encoding(data: &[u8]) -> DetectionResult {
     // Check for BOM markers first
     if data.len() >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF {
@@ -40,9 +75,6 @@ pub fn detect_encoding(data: &[u8]) -> DetectionResult {
 
     let encoding = detector.guess(Some(b"ja"), true);
     let encoding_name = encoding.name().to_string();
-
-    // chardetng doesn't provide a direct confidence score,
-    // so we estimate one based on heuristics.
     let confidence = estimate_confidence(data, encoding);
 
     DetectionResult {
@@ -53,16 +85,12 @@ pub fn detect_encoding(data: &[u8]) -> DetectionResult {
 
 /// Estimate confidence for the detected encoding.
 fn estimate_confidence(data: &[u8], encoding: &'static Encoding) -> f32 {
-    // Try decoding and see if there are replacement characters
     let (decoded, _, had_errors) = encoding.decode(data);
 
     if !had_errors {
-        // If it's valid UTF-8, high confidence
         if encoding == encoding_rs::UTF_8 {
             return 0.95;
         }
-        // Valid decode without errors = good confidence
-        // Check if the decoded text contains common Japanese characters
         let has_japanese = decoded.chars().any(|c| {
             ('\u{3000}'..='\u{9FFF}').contains(&c) || ('\u{F900}'..='\u{FAFF}').contains(&c)
         });
@@ -72,22 +100,31 @@ fn estimate_confidence(data: &[u8], encoding: &'static Encoding) -> f32 {
         return 0.80;
     }
 
-    // Had errors during decoding = lower confidence
     0.50
 }
 
+/// Check if data is already valid UTF-8 (with or without BOM).
+pub fn is_already_utf8(data: &[u8]) -> bool {
+    let content = if data.len() >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF {
+        &data[3..]
+    } else {
+        data
+    };
+    std::str::from_utf8(content).is_ok()
+}
+
 /// Convert data from the source encoding to UTF-8 with BOM.
+/// Uses lossy conversion: characters that cannot be decoded are replaced with U+FFFD.
 pub fn convert_to_utf8_bom(data: &[u8], source_encoding_name: &str) -> Result<Vec<u8>, String> {
     let source_data = strip_bom(data);
 
     let encoding = Encoding::for_label(source_encoding_name.as_bytes())
         .ok_or_else(|| format!("Unknown encoding: {}", source_encoding_name))?;
 
-    let (decoded, _, had_errors) = encoding.decode(source_data);
+    let (decoded, _, _had_errors) = encoding.decode(source_data);
 
-    if had_errors {
-        return Err("Encoding conversion had errors (some characters could not be decoded)".to_string());
-    }
+    // Lossy conversion: allow replacement characters (U+FFFD) instead of failing.
+    // The smart scorer already picked the best encoding, so remaining errors are acceptable.
 
     // Build UTF-8 BOM + content
     let mut result = Vec::with_capacity(3 + decoded.len());

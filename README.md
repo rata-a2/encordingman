@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.0-blue" alt="version">
+  <img src="https://img.shields.io/badge/version-1.3.0-blue" alt="version">
   <img src="https://img.shields.io/badge/platform-Windows-0078D6?logo=windows" alt="platform">
   <img src="https://img.shields.io/badge/Rust-000000?logo=rust" alt="Rust">
   <img src="https://img.shields.io/badge/Tauri_2-24C8DB?logo=tauri&logoColor=white" alt="Tauri">
@@ -26,15 +26,28 @@ ExcelでCSVを開いたら文字化け...そんな経験はありませんか？
 
 ## Features
 
-- **エンコード自動判定** - Firefoxと同じchardetngエンジンで高精度に検出
-- **ワンクリック変換** - 信頼度が高ければ自動変換、低ければ確認UIを表示
+- **スマート自動判定** - 全候補エンコーディングを試行し、最適なものを自動選択
+- **サイレント処理** - ウィンドウを表示せずに瞬時に変換・起動（v1.3.0新機能）
+- **バッチ処理** - 複数ファイルやフォルダを一括変換（v1.3.0新機能）
 - **元ファイル保護** - 元のファイルは一切変更しない非破壊処理
 - **多形式対応** - テキスト系はエンコード変換、Office系はパススルーで開く
-- **軽量・高速** - Tauri製でインストーラーわずか2.5MB、起動500ms以内
+- **軽量・高速** - Tauri製でインストーラーわずか3MB、起動500ms以内
+
+## How It Works
+
+```
+ファイルをダブルクリック
+  → EncodingMan がバックグラウンドで起動
+  → 既にUTF-8？ → そのままアプリで開く（ウィンドウ表示なし）
+  → 文字化けあり？ → スマート自動変換 → アプリで開く（ウィンドウ表示なし）
+  → バイナリ？ → そのまま関連アプリで開く（ウィンドウ表示なし）
+```
+
+**ポイント**: ファイル引数付きで起動した場合、全てのケースでウィンドウは表示されません。完全にバックグラウンドで処理が完了します。
 
 ## Supported File Types
 
-### テキスト系（エンコード変換対象）
+### テキスト系（エンコード自動変換対象）
 
 | 拡張子 | 説明 |
 |--------|------|
@@ -70,6 +83,7 @@ ExcelでCSVを開いたら文字化け...そんな経験はありませんか？
 | EUC-JP | 古い日本語システム |
 | ISO-2022-JP | メール等の旧日本語規格 |
 | UTF-16 LE/BE | Windowsの一部アプリ |
+| windows-1252 | 西ヨーロッパ言語 |
 
 ## Download
 
@@ -84,7 +98,13 @@ ExcelでCSVを開いたら文字化け...そんな経験はありませんか？
 
 1. インストーラーを実行してインストール
 2. CSVファイルを右クリック →「プログラムから開く」→ EncodingManを選択
-3. ファイルをダブルクリックすると自動で文字コード変換 → Excelなどで表示
+3. 以降、ファイルをダブルクリックするだけで自動変換 → Excelなどで表示
+
+### バッチ処理
+
+1. EncodingManを直接起動
+2. 複数ファイルをドラッグ&ドロップ、または「フォルダ一括変換」ボタンからフォルダを選択
+3. 全ファイルが自動で変換され、結果サマリーが表示されます
 
 ### 設定
 
@@ -94,7 +114,6 @@ ExcelでCSVを開いたら文字化け...そんな経験はありませんか？
 |---------|------|----------|
 | デフォルト起動アプリ | 変換後に開くアプリのパス | システムデフォルト |
 | 変換先エンコード | 変換後の文字コード | UTF-8 BOM付き |
-| 信頼度スコア閾値 | この値未満で確認ダイアログを表示 | 75% |
 | プレビュー行数 | 確認画面で表示する行数 | 10行 |
 
 ## Architecture
@@ -104,30 +123,21 @@ EncodingMan
 ├── src-tauri/           # Rust バックエンド
 │   ├── src/
 │   │   ├── main.rs      # エントリポイント
-│   │   ├── lib.rs       # Tauri コマンド定義
+│   │   ├── lib.rs       # Tauri コマンド定義 + setup フック
 │   │   ├── encoder.rs   # chardetng + encoding_rs による判定・変換
+│   │   ├── scorer.rs    # マルチエンコーディング スコアリングエンジン
 │   │   ├── config.rs    # 設定ファイル管理 (%APPDATA%)
 │   │   └── launcher.rs  # 外部アプリ起動・一時ファイル管理
 │   └── Cargo.toml
 ├── src/                 # React フロントエンド
 │   ├── App.tsx          # メインUI
 │   ├── components/
-│   │   ├── ConvertView.tsx  # 変換確認・プレビュー画面
+│   │   ├── BatchView.tsx    # バッチ処理結果画面
+│   │   ├── ConvertView.tsx  # 手動変換確認画面
 │   │   └── Settings.tsx     # 設定画面
 │   └── lib/
 │       └── tauri-commands.ts  # Rust↔React ブリッジ
 └── package.json
-```
-
-### 処理フロー
-
-```
-ファイルをダブルクリック
-  → EncodingMan 起動 (引数にファイルパス)
-  → バイナリ読み込み (元ファイルは読み取り専用)
-  → chardetng でエンコード判定 + 信頼スコア算出
-  → 信頼度 ≥ 75%: 自動変換 → 一時ファイル生成 → アプリで開く
-  → 信頼度 < 75%: 確認UI表示 → ユーザーがエンコード選択 → 変換・起動
 ```
 
 ## Tech Stack

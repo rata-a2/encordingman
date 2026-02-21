@@ -20,6 +20,23 @@ export interface AppConfig {
   keep_temp_file: boolean;
 }
 
+export interface BatchFileResult {
+  file_path: string;
+  file_name: string;
+  status: "converted" | "already_utf8" | "binary" | "error";
+  detected_encoding: string | null;
+  error_message: string | null;
+}
+
+export interface BatchResult {
+  results: BatchFileResult[];
+  total: number;
+  converted: number;
+  already_utf8: number;
+  binary: number;
+  errors: number;
+}
+
 export async function detectAndConvert(
   filePath: string
 ): Promise<ConvertResult> {
@@ -31,6 +48,18 @@ export async function convertWithEncoding(
   encoding: string
 ): Promise<string> {
   return invoke("convert_with_encoding", { filePath, encoding });
+}
+
+export async function batchConvert(
+  filePaths: string[]
+): Promise<BatchResult> {
+  return invoke("batch_convert", { filePaths });
+}
+
+export async function scanFolder(
+  folderPath: string
+): Promise<string[]> {
+  return invoke("scan_folder", { folderPath });
 }
 
 export async function getConfig(): Promise<AppConfig> {

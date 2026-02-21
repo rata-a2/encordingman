@@ -115,35 +115,13 @@ export default function Settings({ onBack }: SettingsProps) {
           </select>
         </div>
 
-        {/* Confidence Threshold */}
+        {/* Smart Auto-Fix Info */}
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-slate-300">
-            信頼度スコア閾値:{" "}
-            <span className="text-sky-400">
-              {Math.round(config.confidence_threshold * 100)}%
-            </span>
+            エンコーディング判定
           </label>
-          <input
-            type="range"
-            min="0.5"
-            max="1.0"
-            step="0.05"
-            value={config.confidence_threshold}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                confidence_threshold: parseFloat(e.target.value),
-              })
-            }
-            className="w-full accent-sky-400"
-          />
-          <div className="flex justify-between text-xs text-slate-500">
-            <span>50%</span>
-            <span>75%</span>
-            <span>100%</span>
-          </div>
           <span className="text-xs text-slate-500">
-            この値より低い場合、確認ダイアログを表示します
+            スマート自動判定: 全候補エンコーディングを試行し、最適なものを自動選択します
           </span>
         </div>
 
