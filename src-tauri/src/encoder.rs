@@ -132,3 +132,48 @@ pub fn supported_encodings() -> Vec<&'static str> {
         "windows-1252",
     ]
 }
+
+/// Binary file extensions that should be opened directly without encoding conversion.
+const BINARY_EXTENSIONS: &[&str] = &[
+    "xls", "xlsx", "xlsm", "xlsb",     // Excel
+    "doc", "docx", "docm",              // Word
+    "ppt", "pptx", "pptm",             // PowerPoint
+    "pdf",                               // PDF
+    "zip", "rar", "7z", "gz", "tar",   // Archives
+    "png", "jpg", "jpeg", "gif", "bmp", "ico", "webp", "svg",  // Images
+    "mp3", "wav", "ogg", "flac",       // Audio
+    "mp4", "avi", "mkv", "mov",        // Video
+    "exe", "dll", "msi",               // Executables
+];
+
+/// Check if a file is a binary format that should be opened directly (pass-through).
+/// Detection is done by file extension and magic bytes.
+pub fn is_binary_file(path: &Path) -> bool {
+    // Check by extension
+    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+        let ext_lower = ext.to_lowercase();
+        if BINARY_EXTENSIONS.contains(&ext_lower.as_str()) {
+            return true;
+        }
+    }
+
+    // Check by magic bytes (first 8 bytes)
+    if let Ok(data) = fs::read(path) {
+        if data.len() >= 8 {
+            // ZIP signature (xlsx, docx, pptx are ZIP-based)
+            if data[0] == 0x50 && data[1] == 0x4B && data[2] == 0x03 && data[3] == 0x04 {
+                return true;
+            }
+            // OLE2 Compound Document (xls, doc, ppt)
+            if data[0] == 0xD0 && data[1] == 0xCF && data[2] == 0x11 && data[3] == 0xE0 {
+                return true;
+            }
+            // PDF signature
+            if data[0] == 0x25 && data[1] == 0x50 && data[2] == 0x44 && data[3] == 0x46 {
+                return true;
+            }
+        }
+    }
+
+    false
+}

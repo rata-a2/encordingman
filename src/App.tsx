@@ -91,10 +91,18 @@ export default function App() {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-3">
         <div className="text-4xl text-green-400">&#10003;</div>
-        <div className="text-base font-medium">変換完了</div>
+        <div className="text-base font-medium">
+          {result?.is_binary ? "ファイルを開きました" : "変換完了"}
+        </div>
         <div className="text-sm text-slate-400">
-          {result?.detected_encoding} &rarr; UTF-8 BOM (信頼度:{" "}
-          {result ? Math.round(result.confidence * 100) : 0}%)
+          {result?.is_binary ? (
+            <>{result.file_name}</>
+          ) : (
+            <>
+              {result?.detected_encoding} &rarr; UTF-8 BOM (信頼度:{" "}
+              {result ? Math.round(result.confidence * 100) : 0}%)
+            </>
+          )}
         </div>
         <div className="text-xs text-slate-500">
           アプリケーションで開きました
@@ -129,7 +137,7 @@ export default function App() {
         EncodingMan
       </div>
       <div className="text-sm text-slate-400 text-center">
-        テキストファイル文字化け自動修正ツール
+        文字化け自動修正 &amp; ファイルオープナー
       </div>
 
       {/* Drop Zone */}
@@ -139,7 +147,7 @@ export default function App() {
           ファイルをここにドロップ
         </div>
         <div className="text-xs text-slate-500 mt-1">
-          CSV / TSV / TXT / XML / JSON / HTML など対応
+          CSV / TSV / TXT / XLS / XLSX / DOCX など対応
         </div>
       </div>
 

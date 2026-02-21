@@ -10,6 +10,8 @@ use std::path::Path;
 pub struct ConvertResult {
     /// Whether the conversion was performed automatically (high confidence).
     pub auto_converted: bool,
+    /// Whether this is a binary file (pass-through, no encoding conversion).
+    pub is_binary: bool,
     /// Detected encoding name.
     pub detected_encoding: String,
     /// Confidence score (0.0 - 1.0).
@@ -36,16 +38,34 @@ fn detect_and_convert(file_path: String) -> Result<ConvertResult, String> {
     let file_name = path
         .file_name()
         .and_then(|n| n.to_str())
-        .unwrap_or("unknown.csv")
+        .unwrap_or("unknown")
         .to_string();
 
-    // Read file as raw bytes (F-07: read-only, never modify original)
+    let cfg = config::load_config();
+
+    // Binary files (xls, xlsx, docx, etc.) → open directly without conversion
+    if encoder::is_binary_file(path) {
+        launcher::launch_app(&cfg.default_app, &file_path)?;
+
+        return Ok(ConvertResult {
+            auto_converted: true,
+            is_binary: true,
+            detected_encoding: "binary".to_string(),
+            confidence: 1.0,
+            temp_file_path: None,
+            original_preview: vec![format!("[バイナリファイル: {}]", file_name)],
+            converted_preview: vec![],
+            original_path: file_path,
+            file_name,
+        });
+    }
+
+    // Text files → read, detect encoding, convert
     let data = encoder::read_file_bytes(path)
         .map_err(|e| format!("Failed to read file: {}", e))?;
 
     // Detect encoding
     let detection = encoder::detect_encoding(&data);
-    let cfg = config::load_config();
 
     // Generate preview of original (decoded with detected encoding)
     let original_preview = generate_preview(&data, &detection.encoding_name, cfg.preview_lines);
@@ -61,6 +81,7 @@ fn detect_and_convert(file_path: String) -> Result<ConvertResult, String> {
 
         Ok(ConvertResult {
             auto_converted: true,
+            is_binary: false,
             detected_encoding: detection.encoding_name,
             confidence: detection.confidence,
             temp_file_path: Some(temp_path),
@@ -73,6 +94,7 @@ fn detect_and_convert(file_path: String) -> Result<ConvertResult, String> {
         // Low confidence: return result for UI to display
         Ok(ConvertResult {
             auto_converted: false,
+            is_binary: false,
             detected_encoding: detection.encoding_name,
             confidence: detection.confidence,
             temp_file_path: None,

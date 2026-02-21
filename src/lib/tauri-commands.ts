@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 export interface ConvertResult {
   auto_converted: boolean;
+  is_binary: boolean;
   detected_encoding: string;
   confidence: number;
   temp_file_path: string | null;

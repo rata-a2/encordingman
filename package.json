@@ -1,6 +1,6 @@
 {
   "name": "encodingman",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Text file encoding auto-fix tool",
   "private": true,
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "productName": "EncodingMan",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "identifier": "com.encodingman.csvtool",
   "build": {
     "frontendDist": "../dist",
@@ -90,6 +90,48 @@
         "ext": ["htm", "html"],
         "mimeType": "text/html",
         "name": "HTML File",
+        "role": "Editor"
+      },
+      {
+        "ext": ["xls"],
+        "mimeType": "application/vnd.ms-excel",
+        "name": "Excel File (xls)",
+        "role": "Editor"
+      },
+      {
+        "ext": ["xlsx", "xlsm", "xlsb"],
+        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "name": "Excel File (xlsx)",
+        "role": "Editor"
+      },
+      {
+        "ext": ["doc"],
+        "mimeType": "application/msword",
+        "name": "Word File (doc)",
+        "role": "Editor"
+      },
+      {
+        "ext": ["docx", "docm"],
+        "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "name": "Word File (docx)",
+        "role": "Editor"
+      },
+      {
+        "ext": ["ppt"],
+        "mimeType": "application/vnd.ms-powerpoint",
+        "name": "PowerPoint File (ppt)",
+        "role": "Editor"
+      },
+      {
+        "ext": ["pptx", "pptm"],
+        "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "name": "PowerPoint File (pptx)",
+        "role": "Editor"
+      },
+      {
+        "ext": ["pdf"],
+        "mimeType": "application/pdf",
+        "name": "PDF File",
         "role": "Editor"
       }
     ]

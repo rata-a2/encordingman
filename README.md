@@ -29,10 +29,12 @@ ExcelでCSVを開いたら文字化け...そんな経験はありませんか？
 - **エンコード自動判定** - Firefoxと同じchardetngエンジンで高精度に検出
 - **ワンクリック変換** - 信頼度が高ければ自動変換、低ければ確認UIを表示
 - **元ファイル保護** - 元のファイルは一切変更しない非破壊処理
-- **多形式対応** - CSV, TSV, TXT, XML, JSON, HTML, XSL, DAT, LOG に対応
+- **多形式対応** - テキスト系はエンコード変換、Office系はパススルーで開く
 - **軽量・高速** - Tauri製でインストーラーわずか2.5MB、起動500ms以内
 
 ## Supported File Types
+
+### テキスト系（エンコード変換対象）
 
 | 拡張子 | 説明 |
 |--------|------|
@@ -45,6 +47,18 @@ ExcelでCSVを開いたら文字化け...そんな経験はありませんか？
 | `.html` / `.htm` | HTMLファイル |
 | `.dat` | データファイル |
 | `.log` | ログファイル |
+
+### バイナリ系（パススルー：そのまま指定アプリで開く）
+
+| 拡張子 | 説明 |
+|--------|------|
+| `.xls` | Excel (旧形式) |
+| `.xlsx` / `.xlsm` / `.xlsb` | Excel (Open XML) |
+| `.doc` | Word (旧形式) |
+| `.docx` / `.docm` | Word (Open XML) |
+| `.ppt` | PowerPoint (旧形式) |
+| `.pptx` / `.pptm` | PowerPoint (Open XML) |
+| `.pdf` | PDF |
 
 ## Supported Encodings
 
