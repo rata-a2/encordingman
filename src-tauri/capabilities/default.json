@@ -9,6 +9,8 @@
     "core:window:allow-close",
     "core:window:allow-set-focus",
     "core:webview:allow-on-drag-drop-event",
+    "updater:default",
+    "process:allow-restart",
     "shell:allow-open",
     "dialog:allow-open",
     "dialog:allow-save"

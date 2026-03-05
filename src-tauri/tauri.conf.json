@@ -1,6 +1,6 @@
 {
   "productName": "EncodingMan",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "identifier": "com.encodingman.csvtool",
   "build": {
     "frontendDist": "../dist",
@@ -24,9 +24,18 @@
       "csp": null
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdFOThDQzQ1QkE4RTJBQTgKUldTb0tvNjZSY3lZZnU2WXZiOVB5RzlwZHVQQUZENmVoY3o4YlFQY1ZIemVGUkk5QW1jTitGZDAK",
+      "endpoints": [
+        "https://github.com/rata-a2/encordingman/releases/latest/download/latest.json"
+      ]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

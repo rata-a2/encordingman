@@ -2,18 +2,33 @@ import { useEffect, useState } from "react";
 import type { AppConfig } from "../lib/tauri-commands";
 import { getConfig, updateConfig } from "../lib/tauri-commands";
 import { open } from "@tauri-apps/plugin-dialog";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { getVersion } from "@tauri-apps/api/app";
 
 interface SettingsProps {
   onBack: () => void;
 }
 
+type UpdateStatus =
+  | { state: "idle" }
+  | { state: "checking" }
+  | { state: "available"; version: string; body: string }
+  | { state: "downloading"; percent: number }
+  | { state: "ready" }
+  | { state: "latest" }
+  | { state: "error"; message: string };
+
 export default function Settings({ onBack }: SettingsProps) {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ state: "idle" });
+  const [appVersion, setAppVersion] = useState("");
 
   useEffect(() => {
     getConfig().then(setConfig);
+    getVersion().then(setAppVersion);
   }, []);
 
   async function handleSave() {
@@ -45,6 +60,54 @@ export default function Settings({ onBack }: SettingsProps) {
     } catch {
       // User cancelled
     }
+  }
+
+  async function handleCheckUpdate() {
+    setUpdateStatus({ state: "checking" });
+    try {
+      const update = await check();
+      if (update) {
+        setUpdateStatus({
+          state: "available",
+          version: update.version,
+          body: update.body ?? "",
+        });
+      } else {
+        setUpdateStatus({ state: "latest" });
+        setTimeout(() => setUpdateStatus({ state: "idle" }), 3000);
+      }
+    } catch (e) {
+      setUpdateStatus({ state: "error", message: String(e) });
+    }
+  }
+
+  async function handleInstallUpdate() {
+    setUpdateStatus({ state: "downloading", percent: 0 });
+    try {
+      const update = await check();
+      if (!update) return;
+
+      let totalBytes = 0;
+      let downloadedBytes = 0;
+      await update.downloadAndInstall((event) => {
+        if (event.event === "Started" && event.data.contentLength) {
+          totalBytes = event.data.contentLength;
+        } else if (event.event === "Progress") {
+          downloadedBytes += event.data.chunkLength;
+          const percent = totalBytes > 0
+            ? Math.min(100, Math.round((downloadedBytes / totalBytes) * 100))
+            : 0;
+          setUpdateStatus({ state: "downloading", percent });
+        }
+      });
+      setUpdateStatus({ state: "ready" });
+    } catch (e) {
+      setUpdateStatus({ state: "error", message: String(e) });
+    }
+  }
+
+  async function handleRelaunch() {
+    await relaunch();
   }
 
   if (!config) {
@@ -159,6 +222,96 @@ export default function Settings({ onBack }: SettingsProps) {
           <label htmlFor="keepTemp" className="text-sm text-slate-300">
             一時ファイルをアプリ終了後も保持する
           </label>
+        </div>
+
+        {/* Update Section */}
+        <div className="flex flex-col gap-2 border-t border-slate-700 pt-4">
+          <label className="text-sm font-medium text-slate-300">
+            アップデート
+          </label>
+
+          {updateStatus.state === "idle" && (
+            <button
+              onClick={handleCheckUpdate}
+              className="self-start px-4 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-sm transition-colors"
+            >
+              アップデートを確認
+            </button>
+          )}
+
+          {updateStatus.state === "checking" && (
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+              確認中...
+            </div>
+          )}
+
+          {updateStatus.state === "latest" && (
+            <div className="text-sm text-green-400">
+              &#10003; 最新バージョンです (v{appVersion})
+            </div>
+          )}
+
+          {updateStatus.state === "available" && (
+            <div className="flex flex-col gap-2">
+              <div className="bg-sky-900/30 border border-sky-700 rounded p-3">
+                <div className="text-sm font-medium text-sky-300">
+                  v{updateStatus.version} が利用可能です
+                </div>
+                {updateStatus.body && (
+                  <div className="text-xs text-slate-400 mt-1 whitespace-pre-wrap">
+                    {updateStatus.body}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={handleInstallUpdate}
+                className="self-start px-4 py-1.5 bg-sky-600 hover:bg-sky-500 rounded text-sm font-medium transition-colors"
+              >
+                ダウンロードしてインストール
+              </button>
+            </div>
+          )}
+
+          {updateStatus.state === "downloading" && (
+            <div className="flex flex-col gap-1">
+              <div className="text-sm text-slate-400">ダウンロード中...</div>
+              <div className="w-full bg-slate-700 rounded-full h-2">
+                <div
+                  className="bg-sky-400 h-2 rounded-full transition-all"
+                  style={{ width: `${updateStatus.percent}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {updateStatus.state === "ready" && (
+            <div className="flex flex-col gap-2">
+              <div className="text-sm text-green-400">
+                &#10003; インストール完了
+              </div>
+              <button
+                onClick={handleRelaunch}
+                className="self-start px-4 py-1.5 bg-green-600 hover:bg-green-500 rounded text-sm font-medium transition-colors"
+              >
+                再起動して適用
+              </button>
+            </div>
+          )}
+
+          {updateStatus.state === "error" && (
+            <div className="flex flex-col gap-2">
+              <div className="text-xs text-red-400">
+                {updateStatus.message}
+              </div>
+              <button
+                onClick={() => setUpdateStatus({ state: "idle" })}
+                className="self-start px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs transition-colors"
+              >
+                再試行
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

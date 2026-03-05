@@ -40,26 +40,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    async function init() {
-      try {
-        await getCurrentWindow().show();
+    // Window is already shown by the Rust setup hook.
+    // No need to call getCurrentWindow().show() from frontend.
+    const urlParams = new URLSearchParams(window.location.search);
+    const fileArg = urlParams.get("file");
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const fileArg = urlParams.get("file");
-
-        if (fileArg) {
-          setFilePath(fileArg);
-          await processFile(fileArg);
-        } else {
-          setView("idle");
-        }
-      } catch (e) {
-        setError(String(e));
-        setView("idle");
-      }
+    if (fileArg) {
+      setFilePath(fileArg);
+      processFile(fileArg);
+    } else {
+      setView("idle");
     }
-
-    init();
   }, [processFile]);
 
   // Tauri v2 drag-and-drop event listener
