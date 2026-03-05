@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open } from "@tauri-apps/plugin-dialog";
 import ConvertView from "./components/ConvertView";
 import Settings from "./components/Settings";
@@ -15,11 +16,32 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | null>(null);
   const [batchPaths, setBatchPaths] = useState<string[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const processFile = useCallback(async (path: string) => {
+    setView("loading");
+    setError(null);
+    try {
+      const convertResult = await detectAndConvert(path);
+      setResult(convertResult);
+
+      if (convertResult.auto_converted) {
+        setView("done");
+        setTimeout(async () => {
+          await getCurrentWindow().close();
+        }, 1500);
+      } else {
+        setView("convert");
+      }
+    } catch (e) {
+      setError(String(e));
+      setView("idle");
+    }
+  }, []);
 
   useEffect(() => {
     async function init() {
       try {
-        // Ensure window is visible (setup hook may have already shown it)
         await getCurrentWindow().show();
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -38,55 +60,40 @@ export default function App() {
     }
 
     init();
-  }, []);
+  }, [processFile]);
 
-  async function processFile(path: string) {
-    setView("loading");
-    setError(null);
-    try {
-      const convertResult = await detectAndConvert(path);
-      setResult(convertResult);
+  // Tauri v2 drag-and-drop event listener
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
 
-      if (convertResult.auto_converted) {
-        setView("done");
-        setTimeout(() => {
-          window.close();
-        }, 1500);
-      } else {
-        // Manual mode fallback (should not happen in v1.3.0 smart mode)
-        setView("convert");
-      }
-    } catch (e) {
-      setError(String(e));
-      setView("idle");
+    async function setupDragDrop() {
+      unlisten = await getCurrentWebview().onDragDropEvent((event) => {
+        if (event.payload.type === "over") {
+          setIsDragOver(true);
+        } else if (event.payload.type === "leave") {
+          setIsDragOver(false);
+        } else if (event.payload.type === "drop") {
+          setIsDragOver(false);
+          const paths = event.payload.paths;
+          if (!paths || paths.length === 0) return;
+
+          if (paths.length > 1) {
+            setBatchPaths(paths);
+            setView("batch");
+          } else {
+            setFilePath(paths[0]);
+            processFile(paths[0]);
+          }
+        }
+      });
     }
-  }
 
-  async function handleFileDrop(e: React.DragEvent) {
-    e.preventDefault();
-    const files = e.dataTransfer?.files;
-    if (!files || files.length === 0) return;
+    setupDragDrop();
 
-    if (files.length > 1) {
-      // Multiple files → batch mode
-      const paths: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const path = (files[i] as File & { path?: string }).path;
-        if (path) paths.push(path);
-      }
-      if (paths.length > 0) {
-        setBatchPaths(paths);
-        setView("batch");
-      }
-    } else {
-      // Single file
-      const path = (files[0] as File & { path?: string }).path;
-      if (path) {
-        setFilePath(path);
-        await processFile(path);
-      }
-    }
-  }
+    return () => {
+      unlisten?.();
+    };
+  }, [processFile]);
 
   async function handleSelectFolder() {
     try {
@@ -105,8 +112,8 @@ export default function App() {
     }
   }
 
-  function handleDragOver(e: React.DragEvent) {
-    e.preventDefault();
+  async function closeWindow() {
+    await getCurrentWindow().close();
   }
 
   // Loading view
@@ -176,18 +183,14 @@ export default function App() {
     return (
       <ConvertView
         result={result}
-        onClose={() => window.close()}
+        onClose={closeWindow}
       />
     );
   }
 
   // Idle / Drop zone view
   return (
-    <div
-      className="flex flex-col items-center justify-center h-screen gap-4 p-6"
-      onDrop={handleFileDrop}
-      onDragOver={handleDragOver}
-    >
+    <div className="flex flex-col items-center justify-center h-screen gap-4 p-6">
       <div className="text-2xl font-bold text-sky-400 mb-2">
         EncodingMan
       </div>
@@ -196,7 +199,13 @@ export default function App() {
       </div>
 
       {/* Drop Zone */}
-      <div className="w-full max-w-sm border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-sky-400 transition-colors cursor-pointer">
+      <div
+        className={`w-full max-w-sm border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
+          isDragOver
+            ? "border-sky-400 bg-sky-400/10"
+            : "border-slate-600 hover:border-sky-400"
+        }`}
+      >
         <div className="text-3xl mb-3 text-slate-500">&#128196;</div>
         <div className="text-sm text-slate-400">
           ファイルをここにドロップ（複数可）

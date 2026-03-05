@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ConvertResult } from "../lib/tauri-commands";
 import {
   convertWithEncoding,
@@ -19,9 +19,9 @@ export default function ConvertView({ result, onClose }: ConvertViewProps) {
   const [converting, setConverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useState(() => {
+  useEffect(() => {
     getSupportedEncodings().then(setEncodings);
-  });
+  }, []);
 
   const confidencePercent = Math.round(result.confidence * 100);
   const confidenceColor =
