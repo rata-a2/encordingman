@@ -26,7 +26,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdFOThDQzQ1QkE4RTJBQTgKUldTb0tvNjZSY3lZZnU2WXZiOVB5RzlwZHVQQUZENmVoY3o4YlFQY1ZIemVGUkk5QW1jTitGZDAK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDYwRTUzN0Y4QTgzREY0NzAKUldSdzlEMm8rRGZsWUw2YndranJ5djA3MG9vSGRveVJHaEwrdml2aTQwazIrak9SbXkrTHl1N1oK",
       "endpoints": [
         "https://github.com/rata-a2/encordingman/releases/latest/download/latest.json"
       ]
