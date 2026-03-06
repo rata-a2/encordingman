@@ -46,8 +46,7 @@
       "nsis": {
         "displayLanguageSelector": false,
         "languages": ["Japanese"],
-        "oneClick": true,
-        "perMachine": false
+        "installMode": "currentUser"
       }
     },
     "fileAssociations": [
