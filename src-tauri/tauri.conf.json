@@ -1,6 +1,6 @@
 {
   "productName": "EncodingMan",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "identifier": "com.encodingman.csvtool",
   "build": {
     "frontendDist": "../dist",
@@ -44,8 +44,10 @@
     ],
     "windows": {
       "nsis": {
-        "displayLanguageSelector": true,
-        "languages": ["Japanese", "English"]
+        "displayLanguageSelector": false,
+        "languages": ["Japanese"],
+        "oneClick": true,
+        "perMachine": false
       }
     },
     "fileAssociations": [

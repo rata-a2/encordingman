@@ -86,6 +86,32 @@ export default function App() {
     };
   }, [processFile]);
 
+  async function handleSelectFile() {
+    try {
+      const selected = await open({
+        multiple: true,
+        filters: [
+          {
+            name: "対応ファイル",
+            extensions: ["csv", "tsv", "txt", "dat", "log", "xml", "xsl", "xslt", "json", "htm", "html", "xls", "xlsx", "xlsm", "xlsb", "doc", "docx", "docm", "ppt", "pptx", "pptm", "pdf"],
+          },
+          { name: "すべてのファイル", extensions: ["*"] },
+        ],
+      });
+      if (!selected) return;
+      const paths = Array.isArray(selected) ? selected : [selected];
+      if (paths.length > 1) {
+        setBatchPaths(paths);
+        setView("batch");
+      } else {
+        setFilePath(paths[0]);
+        processFile(paths[0]);
+      }
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
   async function handleSelectFolder() {
     try {
       const selected = await open({ directory: true });
@@ -189,20 +215,21 @@ export default function App() {
         文字化け自動修正 &amp; ファイルオープナー
       </div>
 
-      {/* Drop Zone */}
+      {/* Drop Zone (clickable to open file dialog) */}
       <div
+        onClick={handleSelectFile}
         className={`w-full max-w-sm border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
           isDragOver
             ? "border-sky-400 bg-sky-400/10"
-            : "border-slate-600 hover:border-sky-400"
+            : "border-slate-600 hover:border-sky-400 hover:bg-sky-400/5"
         }`}
       >
         <div className="text-3xl mb-3 text-slate-500">&#128196;</div>
         <div className="text-sm text-slate-400">
-          ファイルをここにドロップ（複数可）
+          ファイルをドロップ or クリックして選択
         </div>
         <div className="text-xs text-slate-500 mt-1">
-          CSV / TSV / TXT / XLS / XLSX / DOCX など対応
+          CSV / TSV / TXT / XLS / XLSX / DOCX など対応（複数可）
         </div>
       </div>
 
