@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open } from "@tauri-apps/plugin-dialog";
+import { check, type Update } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 import ConvertView from "./components/ConvertView";
 import Settings from "./components/Settings";
 import BatchView from "./components/BatchView";
@@ -9,6 +11,11 @@ import type { ConvertResult } from "./lib/tauri-commands";
 import { detectAndConvert, scanFolder } from "./lib/tauri-commands";
 
 type View = "loading" | "convert" | "settings" | "done" | "idle" | "batch";
+type UpdateBanner =
+  | null
+  | { state: "available"; version: string; update: Update }
+  | { state: "downloading"; percent: number; update: Update }
+  | { state: "ready" };
 
 export default function App() {
   const [view, setView] = useState<View>("loading");
@@ -17,6 +24,7 @@ export default function App() {
   const [filePath, setFilePath] = useState<string | null>(null);
   const [batchPaths, setBatchPaths] = useState<string[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [updateBanner, setUpdateBanner] = useState<UpdateBanner>(null);
 
   const processFile = useCallback(async (path: string) => {
     setView("loading");
@@ -40,8 +48,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Window is already shown by the Rust setup hook.
-    // No need to call getCurrentWindow().show() from frontend.
     const urlParams = new URLSearchParams(window.location.search);
     const fileArg = urlParams.get("file");
 
@@ -51,7 +57,36 @@ export default function App() {
     } else {
       setView("idle");
     }
+
+    // Background auto-update check (silent, no error shown)
+    check().then((update) => {
+      if (update) {
+        setUpdateBanner({ state: "available", version: update.version, update });
+      }
+    }).catch(() => { /* ignore - offline or no release yet */ });
   }, [processFile]);
+
+  async function handleBannerUpdate() {
+    if (!updateBanner || updateBanner.state !== "available") return;
+    const update = updateBanner.update;
+    setUpdateBanner({ state: "downloading", percent: 0, update });
+    try {
+      let totalBytes = 0;
+      let downloadedBytes = 0;
+      await update.downloadAndInstall((event) => {
+        if (event.event === "Started" && event.data.contentLength) {
+          totalBytes = event.data.contentLength;
+        } else if (event.event === "Progress") {
+          downloadedBytes += event.data.chunkLength;
+          const percent = totalBytes > 0 ? Math.min(100, Math.round((downloadedBytes / totalBytes) * 100)) : 0;
+          setUpdateBanner({ state: "downloading", percent, update });
+        }
+      });
+      setUpdateBanner({ state: "ready" });
+    } catch {
+      setUpdateBanner(null);
+    }
+  }
 
   // Tauri v2 drag-and-drop event listener
   useEffect(() => {
@@ -208,6 +243,35 @@ export default function App() {
   // Idle / Drop zone view
   return (
     <div className="flex flex-col items-center justify-center h-screen gap-4 p-6">
+      {/* Auto-update banner */}
+      {updateBanner?.state === "available" && (
+        <div className="w-full max-w-sm bg-sky-900/40 border border-sky-700 rounded-lg px-4 py-2 flex items-center justify-between">
+          <span className="text-xs text-sky-300">v{updateBanner.version} が利用可能</span>
+          <button onClick={handleBannerUpdate} className="px-3 py-1 bg-sky-600 hover:bg-sky-500 rounded text-xs font-medium transition-colors">
+            更新する
+          </button>
+        </div>
+      )}
+      {updateBanner?.state === "downloading" && (
+        <div className="w-full max-w-sm bg-sky-900/40 border border-sky-700 rounded-lg px-4 py-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-sky-300">ダウンロード中...</span>
+            <span className="text-xs text-sky-400">{updateBanner.percent}%</span>
+          </div>
+          <div className="w-full bg-slate-700 rounded-full h-1.5">
+            <div className="bg-sky-400 h-1.5 rounded-full transition-all" style={{ width: `${updateBanner.percent}%` }} />
+          </div>
+        </div>
+      )}
+      {updateBanner?.state === "ready" && (
+        <div className="w-full max-w-sm bg-green-900/40 border border-green-700 rounded-lg px-4 py-2 flex items-center justify-between">
+          <span className="text-xs text-green-300">更新完了！</span>
+          <button onClick={() => relaunch()} className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-xs font-medium transition-colors">
+            再起動
+          </button>
+        </div>
+      )}
+
       <div className="text-2xl font-bold text-sky-400 mb-2">
         EncodingMan
       </div>
